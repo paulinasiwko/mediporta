@@ -7,13 +7,11 @@ import axios from 'axios'; // Import axios for making HTTP requests
 
 
 export default function DataTable() {
-  const [rows, setRows] = useState([]);
-  const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [selectedPageSize, setSelectedPageSize] = useState(25); 
   const [selectedOrder, setSelectedOrder] = useState('');
   const [selectedSort, setSelectedSort] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [tableState, setTableState] = useState({rows: [], page: 1, isLoading: true})
 
   const columns = [
     { field: 'name', headerName: 'Name'},
@@ -23,31 +21,25 @@ export default function DataTable() {
   const fetchNextPageData = (currentPage, currentPageSize) => {
     // Fetch additional data for the next page from your API
     setTableState((prev) => {return {rows: prev.rows, page: currentPage, isLoading: true}})
-    setPage(p => currentPage);
     setSelectedPageSize(p => currentPageSize);
-    console.log(currentPage)
-    setIsLoading(prevLoading => true);
+    console.log('c: ', currentPage)
 
     axios.get(`https://api.stackexchange.com/2.3/tags?key=L44lhuKUbnH4H4FN4hrY6g((&site=stackoverflow&page=${currentPage}&pagesize=${currentPageSize}&order=${selectedOrder}&sort=${selectedSort}`)
       .then(response => {
-        console.log(response)
+        console.log('t:', tableState.page)
         const newRows = response.data.items.map((element, index) => {
           return {id: index, name: element.name, count: element.count}
         })
-        setTableState((prev) => {return {rows: newRows, page: prev.page + 1, isLoading: false}})
-        setRows(p => newRows); // Append new data to the existing rows
-        setPage(p => page + 1); // Update the page number
-        setIsLoading(prevLoading => false);
-
+        setTableState((prev) => {return {rows: newRows, page: currentPage + 1, isLoading: false}});
       })
       .catch(error => {
         console.error('Error fetching next page data:', error);
-        setIsLoading(prevLoading => false);
+        setTableState((prev) => {return {rows: prev.rows, page: prev.page, isLoading: false}})
       });
   };
 
   const handlePageChange = (params) => {
-    fetchNextPageData(params.page + 1, params.pageSize);
+    fetchNextPageData(tableState.page, params.pageSize);
   };
 
   useEffect(() => {
@@ -62,7 +54,7 @@ export default function DataTable() {
         setTotal(response.data.total);
       })
       .then(() => {
-        setIsLoading(prevLoading => false);
+        setTableState((prev) => {return {rows: prev.rows, page: prev.page, isLoading: false}})
 
       })
   }, [])
@@ -86,9 +78,9 @@ export default function DataTable() {
         <option value='popular'>popular</option>
         <option value='name'>name</option>
       </select>
-      {!isLoading ?       
+      {!tableState.isLoading ?       
       <DataGrid
-        rows={rows}
+        rows={tableState.rows}
         columns={columns}
         pageSize={selectedPageSize}
         pageSizeOptions={[5, 10, 25]}

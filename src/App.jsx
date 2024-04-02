@@ -16,22 +16,15 @@ import TableSortLabel from '@mui/material/TableSortLabel';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import Paper from '@mui/material/Paper';
-import IconButton from '@mui/material/IconButton';
-import Tooltip from '@mui/material/Tooltip';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Switch from '@mui/material/Switch';
-import DeleteIcon from '@mui/icons-material/Delete';
-import FilterListIcon from '@mui/icons-material/FilterList';
 import { visuallyHidden } from '@mui/utils';
 
-function createData(id, name, count, synonyms, moderator, required) {
+function createData(id, name, count) {
   return {
     id,
     name,
     count,
-    synonyms,
-    moderator,
-    required,
   };
 }
 
@@ -51,10 +44,6 @@ function getComparator(order, orderBy) {
     : (a, b) => -descendingComparator(a, b, orderBy);
 }
 
-// Since 2020 all major browsers ensure sort stability with Array.prototype.sort().
-// stableSort() brings sort stability to non-modern browsers (notably IE11). If you
-// only support modern browsers you can replace stableSort(exampleArray, exampleComparator)
-// with exampleArray.slice().sort(exampleComparator)
 function stableSort(array, comparator) {
   const stabilizedThis = array.map((el, index) => [el, index]);
   stabilizedThis.sort((a, b) => {
@@ -80,28 +69,10 @@ const headCells = [
     disablePadding: false,
     label: 'Count',
   },
-  {
-    id: 'synonyms',
-    numeric: false,
-    disablePadding: false,
-    label: 'Has synonyms',
-  },
-  {
-    id: 'moderator',
-    numeric: false,
-    disablePadding: false,
-    label: 'Is moderator only',
-  },
-  {
-    id: 'required',
-    numeric: false,
-    disablePadding: false,
-    label: 'Is required',
-  },
 ];
 
 function EnhancedTableHead(props) {
-  const { onSelectAllClick, order, orderBy, numSelected, rowCount, onRequestSort } =
+  const { order, orderBy, onRequestSort } =
     props;
   const createSortHandler = (property) => (event) => {
     onRequestSort(event, property);
@@ -113,9 +84,7 @@ function EnhancedTableHead(props) {
         {headCells.map((headCell) => (
           <TableCell
             key={headCell.id}
-            align='right'
-            padding={headCell.disablePadding ? 'none' : 'normal'}
-            sortDirection={orderBy === headCell.id ? order : false}
+            align='center'
           >
             <TableSortLabel
               active={orderBy === headCell.id}
@@ -160,12 +129,12 @@ function EnhancedTableToolbar(props) {
       }}
     >
         <Typography
-          sx={{ flex: '1 1 100%' }}
+          sx={{ flex: '1 1 100%', fontWeight: 600 }}
           variant="h6"
           id="tableTitle"
           component="div"
         >
-          Nutrition
+          Tags
         </Typography>
     </Toolbar>
   );
@@ -190,7 +159,7 @@ export default function EnhancedTable() {
       try {
         const response = await fetch(URL);
         const data = await response.json();
-        const newRows = data.items.map((element, index) => createData(index + 1, element.name, element.count, element.has_synonyms, element.is_moderator_only, element.is_required));
+        const newRows = data.items.map((element, index) => createData(index + 1, element.name, element.count));
         setRows(newRows);
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -248,7 +217,6 @@ export default function EnhancedTable() {
 
   const isSelected = (id) => selected.indexOf(id) !== -1;
 
-  // Avoid a layout jump when reaching the last page with empty rows.
   const emptyRows =
     page > 0 ? Math.max(0, (1 + page) * rowsPerPage - rows.length) : 0;
 
@@ -271,6 +239,7 @@ export default function EnhancedTable() {
         page={page}
         onPageChange={handleChangePage}
         onRowsPerPageChange={handleChangeRowsPerPage}
+        sx={{backgroundColor: '#B7E0A6', marginTop: '40px', borderRadius: '5px 5px 0 0'}}
       />
       <Paper sx={{ width: '100%', mb: 2 }}>
         <EnhancedTableToolbar numSelected={selected.length} />
@@ -309,14 +278,11 @@ export default function EnhancedTable() {
                       id={labelId}
                       scope="row"
                       padding="none"
-                      align="right"
+                      align="center"
                     >
                       {row.name}
                     </TableCell>
-                    <TableCell align="right">{row.count}</TableCell>
-                    <TableCell align="right">{row.synonyms ? "Yes" : "No"}</TableCell>
-                    <TableCell align="right">{row.moderator ? "Yes" : "No"}</TableCell>
-                    <TableCell align="right">{row.required ? "Yes" : "No"}</TableCell>
+                    <TableCell align="center">{row.count}</TableCell>
                   </TableRow>
                 );
               })}
@@ -340,16 +306,3 @@ export default function EnhancedTable() {
     </Box>
   );
 }
-
-
-// function App() {
-//   const [count, setCount] = useState(0)
-
-//   return (
-//     <>
-    
-//     </>
-//   )
-// }
-
-// export default App

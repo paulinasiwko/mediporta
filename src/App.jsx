@@ -8,44 +8,47 @@ import axios from 'axios'; // Import axios for making HTTP requests
 
 export default function DataTable() {
   const [total, setTotal] = useState(0);
-  const [selectedPageSize, setSelectedPageSize] = useState(25); 
   const [selectedOrder, setSelectedOrder] = useState('');
   const [selectedSort, setSelectedSort] = useState('');
-  const [tableState, setTableState] = useState({rows: [], page: 1, isLoading: true})
+  const [paginationModel, setPaginationModel] = useState({page: 1, pageSize: 25})
+  const [isLoading, setIsLoading] = useState(true)
+  const [rows, setRows] = useState([])
+  const [lastError, setLastError] = useState(null)
 
   const columns = [
     { field: 'name', headerName: 'Name'},
     { field: 'count', headerName: 'Count' },
   ];
 
-  const fetchNextPageData = (currentPage, currentPageSize) => {
+  const fetchNextPageData = () => {
     // Fetch additional data for the next page from your API
-    setTableState((prev) => {return {rows: prev.rows, page: currentPage, isLoading: true}})
-    setSelectedPageSize(p => currentPageSize);
-    console.log('c: ', currentPage)
-
-    axios.get(`https://api.stackexchange.com/2.3/tags?key=L44lhuKUbnH4H4FN4hrY6g((&site=stackoverflow&page=${currentPage}&pagesize=${currentPageSize}&order=${selectedOrder}&sort=${selectedSort}`)
+    setIsLoading(true)
+    
+    axios.get(`https://api.stackexchange.com/2.3/tags?key=L44lhuKUbnH4H4FN4hrY6g((&site=stackoverflow&page=${paginationModel.page}&pagesize=${paginationModel.pageSize}&order=${selectedOrder}&sort=${selectedSort}`)
       .then(response => {
-        console.log('t:', tableState.page)
+        console.log('fetch probuje pobrac:', paginationModel)
         const newRows = response.data.items.map((element, index) => {
           return {id: index, name: element.name, count: element.count}
         })
-        setTableState((prev) => {return {rows: newRows, page: currentPage + 1, isLoading: false}});
+        console.log(newRows)
+        setIsLoading(false)
+        setRows(newRows)
+        setLastError(null)
       })
       .catch(error => {
-        console.error('Error fetching next page data:', error);
-        setTableState((prev) => {return {rows: prev.rows, page: prev.page, isLoading: false}})
+        setIsLoading(false)
+        setLastError(error.message)
       });
   };
 
   const handlePageChange = (params) => {
-    fetchNextPageData(tableState.page, params.pageSize);
+    console.log("Setting state to page:", params.page)
+    setPaginationModel({page: params.page + 1, pageSize:  params.pageSize})
   };
 
   useEffect(() => {
-    // Fetch initial data when component mounts
-    fetchNextPageData(1, selectedPageSize);
-  }, [selectedOrder, selectedSort]);
+    fetchNextPageData()
+  }, [paginationModel])
 
   useEffect(() => {
     const totalURL = `https://api.stackexchange.com/2.3/tags?key=L44lhuKUbnH4H4FN4hrY6g((&site=stackoverflow&order=desc&sort=popular&filter=total`;
@@ -54,9 +57,14 @@ export default function DataTable() {
         setTotal(response.data.total);
       })
       .then(() => {
-        setTableState((prev) => {return {rows: prev.rows, page: prev.page, isLoading: false}})
-
+        setIsLoading(false)
+        setLastError(null)
+        
       })
+      .catch(error => {
+        setIsLoading(false)
+        setLastError(error.message)
+      });
   }, [])
 
   const handleOrderChange = (event) => {
@@ -66,6 +74,8 @@ export default function DataTable() {
     setSelectedSort(event.target.value);
   }
 
+  const pageForTable = paginationModel.page - 1
+  console.log("table pass " + pageForTable)
   return (
     <div style={{ height: 400, width: '100%' }}>
       <select value={selectedOrder} onChange={handleOrderChange}>
@@ -78,19 +88,22 @@ export default function DataTable() {
         <option value='popular'>popular</option>
         <option value='name'>name</option>
       </select>
-      {!tableState.isLoading ?       
-      <DataGrid
-        rows={tableState.rows}
-        columns={columns}
-        pageSize={selectedPageSize}
-        pageSizeOptions={[5, 10, 25]}
-        initialState={{pagination: {paginationModel: { pageSize: 25, page: 0 }}}}
-        rowCount={total}
-        paginationMode='server'
-        onPaginationModelChange={handlePageChange}
-      /> :
-      <p>Ładowanie</p>
-}
+      { total > 0 ?       
+        <DataGrid
+         rows={rows}
+         columns={columns}
+         pageSizeOptions={[5, 10, 25]}
+         loading={isLoading}
+         initialState={{pagination: {paginationModel: { pageSize: 25, page: 0 }}}}
+         rowCount={total}
+         paginationMode='server'
+         paginationModel={{page: pageForTable, pageSize: paginationModel.pageSize}}
+         onPaginationModelChange={handlePageChange}
+        /> : <p>Ładowanie</p> }
+        { lastError != null && 
+          <p>Error occurred while fetching data: ${lastError}</p>
+        }
+
     </div>
   );
 }

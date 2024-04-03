@@ -5,7 +5,7 @@
 
 ## Overview
 
-Storybook is a React mini project completed as part of the recruiting process.
+This is a React mini project completed as part of the recruiting process.
 
 ## Table of Contents
 

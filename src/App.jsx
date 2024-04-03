@@ -3,47 +3,55 @@ import './App.css'
 
 import * as React from 'react';
 import { DataGrid } from '@mui/x-data-grid';
-import axios from 'axios'; // Import axios for making HTTP requests
-
+import axios from 'axios';
+import { useDispatch, useSelector } from 'react-redux';
+import {
+  setTotal,
+  setOrder,
+  setSort,
+  setPaginationModel,
+  setLoading,
+  setRows,
+  setError,
+} from './redux/actions.js';
 
 export default function DataTable() {
-  const [total, setTotal] = useState(0);
-  const [selectedOrder, setSelectedOrder] = useState('');
-  const [selectedSort, setSelectedSort] = useState('');
-  const [paginationModel, setPaginationModel] = useState({page: 1, pageSize: 25})
-  const [isLoading, setIsLoading] = useState(true)
-  const [rows, setRows] = useState([])
-  const [lastError, setLastError] = useState(null)
+  const dispatch = useDispatch();
+  const {
+    total,
+    selectedOrder,
+    selectedSort,
+    paginationModel,
+    isLoading,
+    rows,
+    lastError,
+  } = useSelector((state) => state.data);
 
   const columns = [
-    { field: 'name', headerName: 'Name'},
-    { field: 'count', headerName: 'Count' },
+    { field: 'name', headerName: 'Name', width: 200 },
+    { field: 'count', headerName: 'Count', width: 200 },
   ];
 
   const fetchNextPageData = () => {
-    // Fetch additional data for the next page from your API
-    setIsLoading(true)
+    dispatch(setLoading(true));
     
     axios.get(`https://api.stackexchange.com/2.3/tags?key=L44lhuKUbnH4H4FN4hrY6g((&site=stackoverflow&page=${paginationModel.page}&pagesize=${paginationModel.pageSize}&order=${selectedOrder}&sort=${selectedSort}`)
       .then(response => {
-        console.log('fetch probuje pobrac:', paginationModel)
         const newRows = response.data.items.map((element, index) => {
           return {id: index, name: element.name, count: element.count}
         })
-        console.log(newRows)
-        setIsLoading(false)
-        setRows(newRows)
-        setLastError(null)
+        dispatch(setLoading(false))
+        dispatch(setRows(newRows))
+        dispatch(setError(null))
       })
       .catch(error => {
-        setIsLoading(false)
-        setLastError(error.message)
+        dispatch(setLoading(false))
+        dispatch(setError(error.message))
       });
   };
 
   const handlePageChange = (params) => {
-    console.log("Setting state to page:", params.page)
-    setPaginationModel({page: params.page + 1, pageSize:  params.pageSize})
+    dispatch(setPaginationModel({page: params.page + 1, pageSize:  params.pageSize}))
   };
 
   useEffect(() => {
@@ -54,40 +62,51 @@ export default function DataTable() {
     const totalURL = `https://api.stackexchange.com/2.3/tags?key=L44lhuKUbnH4H4FN4hrY6g((&site=stackoverflow&order=desc&sort=popular&filter=total`;
     axios.get(totalURL)
       .then(response => {
-        setTotal(response.data.total);
+        dispatch(setTotal(response.data.total));
       })
       .then(() => {
-        setIsLoading(false)
-        setLastError(null)
+        dispatch(setLoading(false))
+        dispatch(setError(null))
         
       })
       .catch(error => {
-        setIsLoading(false)
-        setLastError(error.message)
+        dispatch(setLoading(false))
+        dispatch(setError(error.message))
       });
   }, [])
 
   const handleOrderChange = (event) => {
-    setSelectedOrder(event.target.value);
+    dispatch(setOrder(event.target.value));
   }
   const handleSortChange = (event) => {
-    setSelectedSort(event.target.value);
+    dispatch(setSort(event.target.value));
   }
 
   const pageForTable = paginationModel.page - 1
-  console.log("table pass " + pageForTable)
+
+  const selectStyle = {
+    width: 150,
+    height: 30,
+    margin: '30px 10px 10px 10px',
+    backgroundColor: '#B7E0A6',
+    fontWeight: 600,
+    borderRadius: '5px',
+  };
+
   return (
-    <div style={{ height: 400, width: '100%' }}>
-      <select value={selectedOrder} onChange={handleOrderChange}>
-        <option value=''>Order</option>
-        <option value='desc'>desc</option>
-        <option value='asc'>asc</option>
-      </select>
-      <select value={selectedSort} onChange={handleSortChange}>
-        <option value=''>Sort</option>
-        <option value='popular'>popular</option>
-        <option value='name'>name</option>
-      </select>
+    <div style={{ height: 400, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+        <select value={selectedOrder} onChange={handleOrderChange} style={selectStyle}>
+          <option value=''>Order</option>
+          <option value='desc'>Descending</option>
+          <option value='asc'>Ascending</option>
+        </select>
+        <select value={selectedSort} onChange={handleSortChange} style={selectStyle}>
+          <option value=''>Sort</option>
+          <option value='popular'>Popular</option>
+          <option value='name'>Name</option>
+        </select>
+      </div>
       { total > 0 ?       
         <DataGrid
          rows={rows}
@@ -99,14 +118,13 @@ export default function DataTable() {
          paginationMode='server'
          paginationModel={{page: pageForTable, pageSize: paginationModel.pageSize}}
          onPaginationModelChange={handlePageChange}
-        /> : <p>Ładowanie</p> }
+         className="custom-data-grid"
+         sx={{backgroundColor: 'white'}}
+        /> : <p>Loading</p> }
         { lastError != null && 
-          <p>Error occurred while fetching data: ${lastError}</p>
+          <p style={{ color: 'red' }}>Error occurred while fetching data: ${lastError}</p>
         }
 
     </div>
   );
 }
-
-
-

@@ -5,7 +5,7 @@
 
 ## Overview
 
-This is a React mini project completed as part of the recruiting process.
+This is a React mini project completed as a part of the recruitment process.
 
 ## Table of Contents
 

@@ -56,7 +56,7 @@ export default function DataTable() {
 
   useEffect(() => {
     fetchNextPageData()
-  }, [paginationModel])
+  }, [paginationModel, selectedOrder, selectedSort])
 
   useEffect(() => {
     const totalURL = `https://api.stackexchange.com/2.3/tags?key=L44lhuKUbnH4H4FN4hrY6g((&site=stackoverflow&order=desc&sort=popular&filter=total`;
